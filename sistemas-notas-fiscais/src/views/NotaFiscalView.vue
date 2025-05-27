@@ -100,6 +100,7 @@
           <button @click="toggleMenu(n.id)">⋮</button>
           <div v-if="menuAbertoNotaId === n.id" class="actions-menu">
             <button @click="verDetalhesNota(n)">Ver Detalhes</button>
+            <button @click="gerarPdfNota(n)">Gerar PDF</button>
             <button @click="excluirNota(n)">Excluir/Cancelar</button>
           </div>
         </div>
@@ -111,6 +112,7 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import api from "@/services/api";
+import { jsPDF } from "jspdf";
 
 const novaNota = ref({
   clienteId: "",
@@ -136,7 +138,6 @@ const buscarDadosIniciais = async () => {
     produtos.value = resProdutos.data || [];
     notas.value = resNotas.data || [];
 
-    // Definir clienteId inicial para o primeiro cliente disponível
     if (clientes.value.length > 0) {
       novaNota.value.clienteId = String(clientes.value[0].clienteId);
     } else {
@@ -297,6 +298,74 @@ const formatarData = (dataISO) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+// Função para gerar PDF arrumadinho e para impressão
+const gerarPdfNota = (nota) => {
+  const doc = new jsPDF();
+  const margemEsquerda = 14;
+  let y = 20;
+
+  // Cabeçalho Loja
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.text("Júnior Material de Construção", margemEsquerda, y);
+  y += 12;
+
+  // Dados da nota
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Nota Fiscal ID: ${nota.id}`, margemEsquerda, y);
+  y += 8;
+  doc.text(`Cliente: ${nota.clienteNome || "Não informado"}`, margemEsquerda, y);
+  y += 8;
+  doc.text(`Data de Emissão: ${formatarData(nota.dataEmissao)}`, margemEsquerda, y);
+  y += 8;
+  doc.text(`Valor Total: R$ ${nota.valorTotal?.toFixed(2) ?? "0.00"}`, margemEsquerda, y);
+  y += 12;
+
+  // Cabeçalho da tabela
+  doc.setFont("helvetica", "bold");
+  doc.text("Itens", margemEsquerda, y);
+  y += 8;
+
+  // Colunas da tabela
+  const colX = [margemEsquerda, 90, 120, 160];
+  doc.setFontSize(11);
+  doc.text("Produto", colX[0], y);
+  doc.text("Quantidade", colX[1], y, { align: "right" });
+  doc.text("Preço Unit.", colX[2], y, { align: "right" });
+  doc.text("Subtotal", colX[3], y, { align: "right" });
+  y += 3;
+
+  // Linha horizontal abaixo cabeçalho
+  doc.setLineWidth(0.5);
+  doc.line(margemEsquerda, y, 190, y);
+  y += 7;
+
+  doc.setFont("helvetica", "normal");
+  nota.itemNotaFiscalResponse.forEach((item, i) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+    const subtotal = item.quantidade * item.precoUnitario;
+    doc.text(item.nome, colX[0], y);
+    doc.text(String(item.quantidade), colX[1], y, { align: "right" });
+    doc.text(`R$ ${formatarPreco(item.precoUnitario)}`, colX[2], y, { align: "right" });
+    doc.text(`R$ ${subtotal.toFixed(2)}`, colX[3], y, { align: "right" });
+    y += 8;
+  });
+
+  y += 15;
+
+  // Linha para assinatura
+  doc.setLineWidth(0.5);
+  doc.line(margemEsquerda, y, margemEsquerda + 80, y);
+  y += 5;
+  doc.text("Assinatura do Cliente", margemEsquerda, y);
+
+  doc.save(`NotaFiscal_${nota.id}.pdf`);
 };
 
 onMounted(() => {
