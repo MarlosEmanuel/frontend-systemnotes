@@ -20,7 +20,7 @@
 
          <label>Preço (R$)</label>
          <input
-           v-model.number="produtoData.preco"
+           v-model.number="produtoData.precoUnitario"
            placeholder="Ex: 49.90"
            type="number"
            step="0.01"
@@ -67,7 +67,7 @@
         >
           <div class="product-info">
              <strong>{{ p.nome }}</strong>
-             <small>R$ {{ p.preco ? p.preco.toFixed(2) : '0.00' }}</small>
+             <small>R$ {{ formatarPreco(p.precoUnitario) }}</small>
              <small>Estoque: {{ p.estoque !== null ? p.estoque : 'N/A' }}</small>
              <small v-if="p.descricao">{{ p.descricao }}</small>
           </div>
@@ -98,12 +98,12 @@ const editandoProduto = ref(false)
 const produtoData = ref({}) // Para form de novo/editar
 const menuAbertoProdutoId = ref(null)
 
-const formTitulo = computed(() => (editandoProduto.value ? 'Editar Produto' : 'Novo Produto'));
+const formTitulo = computed(() => (editandoProduto.value ? 'Editar Produto' : 'Novo Produto'))
 
 function filtrarProdutos() {
   if (!produtos.value) {
-      produtosFiltrados.value = [];
-      return;
+      produtosFiltrados.value = []
+      return
   }
   const termo = busca.value.toLowerCase()
   produtosFiltrados.value = produtos.value.filter(p =>
@@ -129,26 +129,30 @@ const listarProdutos = async () => {
 }
 
 const resetForm = () => {
-    produtoData.value = { nome: '', preco: 0, descricao: '', estoque: 0 };
-};
+  produtoData.value = { nome: '', precoUnitario: 0, descricao: '', estoque: 0 }
+}
 
 const abrirFormNovoProduto = () => {
-    resetForm();
-    editandoProduto.value = false;
-    mostrarFormProduto.value = true;
-    menuAbertoProdutoId.value = null;
-};
+  resetForm()
+  editandoProduto.value = false
+  mostrarFormProduto.value = true
+  menuAbertoProdutoId.value = null
+}
 
 const cancelarFormProduto = () => {
-    if (loadingSalvar.value) return
-    mostrarFormProduto.value = false;
-    editandoProduto.value = false;
-};
+  if (loadingSalvar.value) return
+  mostrarFormProduto.value = false
+  editandoProduto.value = false
+}
 
 async function salvarProduto() {
-  if (!produtoData.value.nome || produtoData.value.preco === null || produtoData.value.estoque === null) {
-      alert('Nome, Preço e Estoque são obrigatórios.');
-      return;
+  if (
+    !produtoData.value.nome ||
+    produtoData.value.precoUnitario === null ||
+    produtoData.value.estoque === null
+  ) {
+    alert('Nome, Preço e Estoque são obrigatórios.')
+    return
   }
 
   loadingSalvar.value = true
@@ -173,38 +177,45 @@ async function salvarProduto() {
 
 const toggleMenu = (produtoId) => {
   menuAbertoProdutoId.value =
-    menuAbertoProdutoId.value === produtoId ? null : produtoId;
-};
+    menuAbertoProdutoId.value === produtoId ? null : produtoId
+}
 
 const editarProduto = (produto) => {
-  produtoData.value = { ...produto };
-  editandoProduto.value = true;
-  mostrarFormProduto.value = true;
-  menuAbertoProdutoId.value = null;
-};
+  produtoData.value = { ...produto }
+  editandoProduto.value = true
+  mostrarFormProduto.value = true
+  menuAbertoProdutoId.value = null
+}
 
 const excluirProduto = async (produto) => {
   if (confirm(`Tem certeza que deseja excluir o produto ${produto.nome}?`)) {
     try {
-      await api.delete(`/produtos/${produto.id}`);
-      alert('Produto excluído com sucesso!');
-      await listarProdutos();
+      await api.delete(`/produtos/${produto.id}`)
+      alert('Produto excluído com sucesso!')
+      await listarProdutos()
     } catch (error) {
-      console.error('Erro ao excluir produto:', error);
-      alert('Falha ao excluir produto. Verifique o console.');
+      console.error('Erro ao excluir produto:', error)
+      alert('Falha ao excluir produto. Verifique o console.')
     }
   }
-  menuAbertoProdutoId.value = null;
-};
+  menuAbertoProdutoId.value = null
+}
+
+function formatarPreco(valor) {
+  const num = Number(valor)
+  if (isNaN(num)) return '0.00'
+  return num.toFixed(2)
+}
 
 onMounted(() => {
-  listarProdutos();
-});
+  listarProdutos()
+})
 
+// Fecha menu de ações clicando fora
 document.addEventListener('click', (event) => {
   const menuContainers = document.querySelectorAll('.actions-menu-container')
   let clickedInsideMenu = false
-  menuContainers.forEach(container => {
+  menuContainers.forEach((container) => {
     if (container.contains(event.target)) {
       clickedInsideMenu = true
     }
@@ -212,7 +223,7 @@ document.addEventListener('click', (event) => {
   if (!clickedInsideMenu) {
     menuAbertoProdutoId.value = null
   }
-});
+})
 </script>
 
 <style scoped>
